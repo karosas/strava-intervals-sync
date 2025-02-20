@@ -6,27 +6,44 @@ import (
 	"time"
 )
 
+// GenerateDescription iterates Workout steps and generates text summary for it
 func (w *Workout) GenerateDescription(sportSettings *AthleteSportSettings) string {
 	var summary string
 
 	for i, doc := range *w.WorkoutDoc.Steps {
-
-		if doc.HeartRate != nil {
-			if i > 0 {
-				summary += "\n"
-			}
-			summary += doc.generateHeartRateDescriptionLine(sportSettings)
-		} else if doc.Pace != nil {
-			if i > 0 {
-				summary += "\n"
-			}
-			summary += doc.generatePaceDescriptionLine(sportSettings)
-		} else {
-			log.Println("Unexpected step type")
+		if i > 0 {
+			summary += "\n"
 		}
+		summary += doc.generateSummaryLineOrBlock(sportSettings)
 	}
 
 	return summary
+}
+
+// generateSummaryLineOrBlock takes a single step and generates summary depending on what type it is:
+// - Repetitions (e.g. repeat step X 3 times)
+//   - Recursively calls this function for each child step (haven't tested or seen multiple level nested repeats)
+//
+// - HeartRate - hr base workout step
+// - Pace - pace based workout step
+func (w *WorkoutStep) generateSummaryLineOrBlock(sportSettings *AthleteSportSettings) string {
+	var result string
+	if w.Repetitions > 0 && len(*w.Steps) > 0 {
+		result += fmt.Sprintf("%dX:\n", w.Repetitions)
+		for i, doc := range *w.Steps {
+			result += fmt.Sprintf("- %s", doc.generateSummaryLineOrBlock(sportSettings))
+			if i != len(*w.Steps)-1 {
+				result += "\n"
+			}
+		}
+	} else if w.HeartRate != nil {
+		result = w.generateHeartRateDescriptionLine(sportSettings)
+	} else if w.Pace != nil {
+		result = w.generatePaceDescriptionLine(sportSettings)
+	} else {
+		log.Println("Unexpected step type")
+	}
+	return result
 }
 
 func (w *WorkoutStep) generateHeartRateDescriptionLine(sportSettings *AthleteSportSettings) string {
@@ -151,16 +168,17 @@ func (w *WorkoutStep) calculationDurationOrDistanceText() string {
 
 	if w.Distance > 0 {
 		if w.Distance < 1000 {
-			distanceText = fmt.Sprintf("%dm", w.Distance)
+			distanceText = fmt.Sprintf("%dm", int(w.Distance))
 		} else {
-			distanceText = fmt.Sprintf("%dkm", w.Distance/1000)
+			distanceText = fmt.Sprintf("%.2gkm", float32(w.Distance)/1000)
 		}
 	}
 	if w.Duration > 0 {
 		if w.Duration < 60 {
-			durationText = fmt.Sprintf("%ds", w.Duration)
+			durationText = fmt.Sprintf("%ds", int(w.Duration))
 		} else {
-			durationText = fmt.Sprintf("%dm", w.Duration/60)
+			duration := time.Duration(w.Duration * float32(time.Second))
+			durationText = time.Unix(0, 0).UTC().Add(duration).Format("04:05min")
 		}
 	}
 
@@ -174,7 +192,7 @@ func (w *WorkoutStep) calculationDurationOrDistanceText() string {
 		// API data that would indicate it).
 		// So I'm just checking if distance is a round number which in most cases should indicate that it was the originally
 		// intended interval format
-		if w.Distance%100 == 0 {
+		if int(w.Distance)%100 == 0 {
 			return distanceText
 		}
 		return fmt.Sprintf("%s / %s", durationText, distanceText)

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strava-intervals-description-sync/strava/persistence"
+	"strava-intervals-description-sync/internal/strava/persistence"
 )
 
 func HandleAuthentication(w http.ResponseWriter, req *http.Request) {

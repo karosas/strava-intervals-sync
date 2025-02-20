@@ -11,6 +11,7 @@ const (
 const (
 	WebhookObjectTypeActivity = "activity"
 	WebhookAspectTypeCreate   = "create"
+	WebhookAspectTypeUpdate   = "update"
 )
 
 type Webhook struct {

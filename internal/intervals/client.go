@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -120,6 +121,15 @@ func FindWorkoutForActivity(intervalsActivity *Activity) (*Workout, error) {
 
 	for _, workout := range workouts {
 		if workout.Id == intervalsActivity.PairedEventId {
+			return workout, nil
+		}
+	}
+
+	// If workout has not auto paired with activity in intervals, then let's try finding one whose
+	// duration or distance is within 5% of workout's duration or distance
+	for _, workout := range workouts {
+		if math.Abs(float64(workout.WorkoutDoc.Distance)-float64(intervalsActivity.Distance)) < float64(workout.WorkoutDoc.Distance)*0.05 ||
+			math.Abs(float64(workout.WorkoutDoc.Duration)-float64(intervalsActivity.MovingTime)) < float64(workout.WorkoutDoc.Duration)*0.05 {
 			return workout, nil
 		}
 	}

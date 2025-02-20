@@ -23,6 +23,8 @@ type Activity struct {
 	// PairedEventId as far as I'm aware, refers to Workout.Id. It might however to also refer to maybe planned races in calendar?
 	PairedEventId int       `json:"paired_event_id"`
 	StartDate     time.Time `json:"start_date"`
+	Distance      float32   `json:"distance"`
+	MovingTime    float32   `json:"moving_time"`
 }
 
 type Workout struct {
@@ -32,7 +34,9 @@ type Workout struct {
 }
 
 type WorkoutDoc struct {
-	Steps *[]WorkoutStep `json:"steps"`
+	Steps    *[]WorkoutStep `json:"steps"`
+	Distance float32        `json:"distance"`
+	Duration float32        `json:"duration"`
 }
 
 // WorkoutStep is dynamic, there are 2 dynamic parts:
@@ -43,11 +47,13 @@ type WorkoutDoc struct {
 // - Distance / Duration can be nil (at least one will be not nil), based whether the step is based on distance or time
 //   - If step is based on distance, but WorkoutStepUnit is `pace` then there'll be `Duration` calculated as well
 type WorkoutStep struct {
-	Distance  int              `json:"distance"`
-	Duration  int              `json:"duration"`
-	Text      string           `json:"text"`
-	HeartRate *WorkoutStepUnit `json:"hr"`
-	Pace      *WorkoutStepUnit `json:"pace"`
+	Distance    float32          `json:"distance"`
+	Duration    float32          `json:"duration"`
+	Text        string           `json:"text"`
+	HeartRate   *WorkoutStepUnit `json:"hr"`
+	Pace        *WorkoutStepUnit `json:"pace"`
+	Steps       *[]WorkoutStep   `json:"steps"`
+	Repetitions int              `json:"reps"`
 }
 
 type WorkoutStepUnit struct {

@@ -3,31 +3,28 @@ package strava
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"strava-intervals-description-sync/strava/persistence"
+	"strava-intervals-description-sync/internal/strava/persistence"
 )
 
 func sendRequestWithRetry(sendRequest func() (*http.Response, error)) (*http.Response, error) {
 	resp, err := sendRequest()
 
-	if err != nil {
-		// refresh access token and try again
-		if resp != nil && resp.StatusCode == http.StatusUnauthorized {
-			log.Println("Strava token expired, refreshing")
-			tempErr := RefreshToken()
-			if tempErr != nil {
-				log.Println("Failed to refresh Strava token")
-				return nil, tempErr
-			}
+	// refresh access token and try again
+	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
+		log.Println("Strava token expired, refreshing")
+		tempErr := RefreshToken()
+		if tempErr != nil {
+			log.Println("Failed to refresh Strava token")
+			return nil, tempErr
+		}
 
-			resp, err = sendRequest()
-			if err != nil {
-				log.Println("Retry with refreshed token failed")
-				return nil, err
-			}
-		} else {
+		resp, err = sendRequest()
+		if err != nil {
+			log.Println("Retry with refreshed token failed")
 			return nil, err
 		}
 	}
@@ -53,7 +50,7 @@ func GetActivity(id int64) (*Activity, error) {
 	})
 
 	if err != nil {
-		log.Println("Failed to get activity")
+		log.Println("Failed to get activity", err)
 		return nil, err
 	}
 
@@ -61,6 +58,12 @@ func GetActivity(id int64) (*Activity, error) {
 	if err = json.NewDecoder(resp.Body).Decode(&activity); err != nil {
 		log.Println("Failed to decode activity ", id)
 		return nil, err
+	}
+
+	// No clue what goes on here, but I have successfully received empty bodies before
+	if activity.SportType == "" && activity.Name == "" {
+		log.Println("Failed to get activity")
+		return nil, errors.New("failed to get activity")
 	}
 
 	return activity, nil
