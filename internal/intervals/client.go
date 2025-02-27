@@ -9,34 +9,50 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strava-intervals-description-sync/internal/util"
 	"strconv"
 	"time"
 )
 
 func FindActivity(stravaActivityId int64, from *time.Time, to *time.Time) (*Activity, error) {
-	client := &http.Client{}
+	findActivityFunc := func() (*http.Response, error) {
+		client := &http.Client{}
 
-	fromFmt := from.Format("2006-01-02T15:04:05")
-	toFmt := to.Format("2006-01-02T15:04:05")
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://intervals.icu/api/v1/athlete/%s/activities?oldest=%s&newest=%s",
-		os.Getenv("INTERVALS_ATHLETE_ID"), fromFmt, toFmt), nil)
-	if err != nil {
-		return nil, err
-	}
-	req.SetBasicAuth("API_KEY", os.Getenv("INTERVALS_API_KEY"))
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		log.Println("Received unexpected status code fetching intervals activity", resp.StatusCode)
-
-		bodyBytes, err := io.ReadAll(resp.Body)
+		fromFmt := from.Format("2006-01-02T15:04:05")
+		toFmt := to.Format("2006-01-02T15:04:05")
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://intervals.icu/api/v1/athlete/%s/activities?oldest=%s&newest=%s",
+			os.Getenv("INTERVALS_ATHLETE_ID"), fromFmt, toFmt), nil)
 		if err != nil {
 			return nil, err
 		}
-		log.Println(string(bodyBytes))
-		return nil, errors.New("unexpected status code fetching intervals activity")
+		req.SetBasicAuth("API_KEY", os.Getenv("INTERVALS_API_KEY"))
+		return client.Do(req)
+	}
+
+	shouldRetryFunc := func(resp *http.Response, err error) bool {
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			var activities []*Activity
+			if err = json.NewDecoder(resp.Body).Decode(&activities); err != nil {
+				return false
+			}
+
+			for _, activity := range activities {
+				if activity.StravaId == strconv.Itoa(int(stravaActivityId)) {
+					return false
+				}
+			}
+
+			return true
+		}
+
+		return true
+	}
+
+	resp, err := util.SendHttpRequestWithExpRetry(findActivityFunc, shouldRetryFunc,
+		func(r *http.Response, err error) error { return nil }, 5)
+
+	if err != nil {
+		return nil, err
 	}
 	var activities []*Activity
 	if err = json.NewDecoder(resp.Body).Decode(&activities); err != nil {

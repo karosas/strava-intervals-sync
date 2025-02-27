@@ -8,32 +8,11 @@ import (
 	"log"
 	"net/http"
 	"strava-intervals-description-sync/internal/strava/persistence"
+	"strava-intervals-description-sync/internal/util"
 )
 
-func sendRequestWithRetry(sendRequest func() (*http.Response, error)) (*http.Response, error) {
-	resp, err := sendRequest()
-
-	// refresh access token and try again
-	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
-		log.Println("Strava token expired, refreshing")
-		tempErr := RefreshToken()
-		if tempErr != nil {
-			log.Println("Failed to refresh Strava token")
-			return nil, tempErr
-		}
-
-		resp, err = sendRequest()
-		if err != nil {
-			log.Println("Retry with refreshed token failed")
-			return nil, err
-		}
-	}
-
-	return resp, err
-}
-
 func GetActivity(id int64) (*Activity, error) {
-	resp, err := sendRequestWithRetry(func() (*http.Response, error) {
+	getActivityFunc := func() (*http.Response, error) {
 		client := &http.Client{}
 		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://www.strava.com/api/v3/activities/%v", id), nil)
 		if err != nil {
@@ -47,7 +26,17 @@ func GetActivity(id int64) (*Activity, error) {
 		resp, err := client.Do(req)
 
 		return resp, err
-	})
+	}
+
+	shouldRetryFunc := func(resp *http.Response, err error) bool {
+		return resp.StatusCode == http.StatusUnauthorized
+	}
+
+	beforeRetryFunc := func(resp *http.Response, err error) error {
+		return RefreshToken()
+	}
+
+	resp, err := util.SendHttpRequestWithExpRetry(getActivityFunc, shouldRetryFunc, beforeRetryFunc, 1)
 
 	if err != nil {
 		log.Println("Failed to get activity", err)
@@ -70,7 +59,7 @@ func GetActivity(id int64) (*Activity, error) {
 }
 
 func UpdateActivity(id int64, activity *UpdatableActivity) error {
-	resp, err := sendRequestWithRetry(func() (*http.Response, error) {
+	updatefunc := func() (*http.Response, error) {
 		client := &http.Client{}
 		jsonBody, err := json.Marshal(activity)
 		if err != nil {
@@ -88,7 +77,17 @@ func UpdateActivity(id int64, activity *UpdatableActivity) error {
 		}
 		req.Header.Set("Authorization", "Bearer "+token)
 		return client.Do(req)
-	})
+	}
+
+	shouldRetryFunc := func(resp *http.Response, err error) bool {
+		return resp.StatusCode == http.StatusUnauthorized
+	}
+
+	beforeRetryFunc := func(resp *http.Response, err error) error {
+		return RefreshToken()
+	}
+
+	resp, err := util.SendHttpRequestWithExpRetry(updatefunc, shouldRetryFunc, beforeRetryFunc, 1)
 
 	if err != nil {
 		log.Println("Failed to update activity")

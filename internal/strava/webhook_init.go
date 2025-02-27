@@ -84,6 +84,10 @@ func createSubscription() error {
 	}
 
 	log.Println("Unexpected webhook registration status code", resp.StatusCode)
+	b, err := io.ReadAll(resp.Body)
+	if err == nil {
+		log.Println(string(b))
+	}
 	return errors.New("strava webhook registration failed")
 }
 
