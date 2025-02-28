@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"log"
 	"math"
 	"net/http"
 	"time"
@@ -22,10 +23,12 @@ func SendHttpRequestWithExpRetry(sendRequest func() (*http.Response, error),
 		}
 
 		if err = beforeRetry(resp, err); err != nil {
+			log.Printf("Before retry failed: %v", err)
 			return nil, err
 		}
 
 		retryDelaySeconds := math.Pow(2, float64(retry))
+		log.Printf("Retrying (%d/%d) in %d seconds", retry+1, maxRetries, int(retryDelaySeconds))
 		time.Sleep(time.Duration(float32(retryDelaySeconds) * float32(time.Second)))
 	}
 

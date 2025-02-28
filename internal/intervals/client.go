@@ -41,13 +41,17 @@ func FindActivity(stravaActivityId int64, from *time.Time, to *time.Time) (*Acti
 					return false
 				}
 			}
-
+			b, _ := io.ReadAll(resp.Body)
+			log.Println(string(b))
 			return true
 		}
+
+		log.Println("Unexpected status code:", resp.StatusCode)
 
 		return true
 	}
 
+	log.Println("Attempting to find intervals.icu activity")
 	resp, err := util.SendHttpRequestWithExpRetry(findActivityFunc, shouldRetryFunc,
 		func(r *http.Response, err error) error { return nil }, 5)
 
