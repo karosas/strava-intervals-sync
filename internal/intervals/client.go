@@ -58,15 +58,13 @@ func FindActivity(stravaActivityId int64, from *time.Time, to *time.Time) (*Acti
 	if err != nil {
 		return nil, err
 	}
-	b, err := io.ReadAll(resp.Body)
-	if err == nil {
-		log.Println(string(b))
-	}
 
 	var activities []*Activity
 	if err = json.NewDecoder(resp.Body).Decode(&activities); err != nil {
 		return nil, err
 	}
+
+	_ = json.NewEncoder(os.Stdout).Encode(activities)
 
 	for _, activity := range activities {
 		if activity.StravaId == strconv.Itoa(int(stravaActivityId)) {
@@ -143,6 +141,8 @@ func FindWorkoutForActivity(intervalsActivity *Activity) (*Workout, error) {
 	if err = json.NewDecoder(resp.Body).Decode(&workouts); err != nil {
 		return nil, err
 	}
+
+	_ = json.NewEncoder(os.Stdout).Encode(workouts)
 
 	for _, workout := range workouts {
 		if workout.Id == intervalsActivity.PairedEventId {
