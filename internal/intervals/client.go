@@ -1,6 +1,7 @@
 package intervals
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,8 +32,15 @@ func FindActivity(stravaActivityId int64, from *time.Time, to *time.Time) (*Acti
 
 	shouldRetryFunc := func(resp *http.Response, err error) bool {
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+
+			b, err := io.ReadAll(resp.Body)
+			defer func() {
+				_ = resp.Body.Close()
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+
 			var activities []*Activity
-			if err = json.NewDecoder(resp.Body).Decode(&activities); err != nil {
+			if err = json.NewDecoder(bytes.NewReader(b)).Decode(&activities); err != nil {
 				return false
 			}
 
