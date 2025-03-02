@@ -53,11 +53,16 @@ func FindActivity(stravaActivityId int64, from *time.Time, to *time.Time) (*Acti
 
 	log.Println("Attempting to find intervals.icu activity")
 	resp, err := util.SendHttpRequestWithExpRetry(findActivityFunc, shouldRetryFunc,
-		func(r *http.Response, err error) error { return nil }, 5)
+		func(r *http.Response, err error) error { return nil }, 10)
 
 	if err != nil {
 		return nil, err
 	}
+	b, err := io.ReadAll(resp.Body)
+	if err == nil {
+		log.Println(string(b))
+	}
+
 	var activities []*Activity
 	if err = json.NewDecoder(resp.Body).Decode(&activities); err != nil {
 		return nil, err
