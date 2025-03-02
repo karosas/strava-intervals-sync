@@ -41,8 +41,7 @@ func FindActivity(stravaActivityId int64, from *time.Time, to *time.Time) (*Acti
 					return false
 				}
 			}
-			b, _ := io.ReadAll(resp.Body)
-			log.Println(string(b))
+
 			return true
 		}
 
