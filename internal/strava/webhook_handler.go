@@ -36,7 +36,7 @@ func ShouldProcessWebhook(w http.ResponseWriter, req *http.Request) (shouldProce
 	}
 
 	if strconv.Itoa(int(webhook.OwnerId)) == os.Getenv("STRAVA_CLIENT_ATHLETE_ID") &&
-		(webhook.AspectType == WebhookAspectTypeCreate || webhook.AspectType == WebhookAspectTypeUpdate) &&
+		(webhook.AspectType == WebhookAspectTypeCreate) &&
 		webhook.ObjectType == WebhookObjectTypeActivity {
 		return true, webhook.ObjectId
 	}
