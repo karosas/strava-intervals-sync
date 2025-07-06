@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -175,12 +176,8 @@ func (w *WorkoutStep) calculationDurationOrDistanceText() string {
 		}
 	}
 	if w.Duration > 0 {
-		if w.Duration < 60 {
-			durationText = fmt.Sprintf("%ds", int(roundNum(w.Duration)))
-		} else {
-			duration := time.Duration(roundNum(w.Duration) * float32(time.Second))
-			durationText = time.Unix(0, 0).UTC().Add(duration).Format("04:05min")
-		}
+		duration := time.Duration(roundNum(w.Duration) * float32(time.Second))
+		durationText = formatDuration(duration)
 	}
 
 	if distanceText == "" {
@@ -202,4 +199,15 @@ func (w *WorkoutStep) calculationDurationOrDistanceText() string {
 
 func roundNum(num float32) float32 {
 	return float32(math.Round(float64(num)/10) * 10)
+}
+
+func formatDuration(d time.Duration) string {
+	s := d.String()
+	if strings.HasSuffix(s, "m0s") {
+		s = s[:len(s)-2]
+	}
+	if strings.HasSuffix(s, "h0m") {
+		s = s[:len(s)-2]
+	}
+	return s
 }
