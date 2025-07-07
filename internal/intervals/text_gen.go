@@ -3,7 +3,6 @@ package intervals
 import (
 	"fmt"
 	"log"
-	"math"
 	"strings"
 	"time"
 )
@@ -176,7 +175,7 @@ func (w *WorkoutStep) calculationDurationOrDistanceText() string {
 		}
 	}
 	if w.Duration > 0 {
-		duration := time.Duration(roundNum(w.Duration) * float32(time.Second))
+		duration := time.Duration(int(w.Duration) * int(time.Second))
 		durationText = formatDuration(duration)
 	}
 
@@ -195,10 +194,6 @@ func (w *WorkoutStep) calculationDurationOrDistanceText() string {
 		}
 		return fmt.Sprintf("%s / %s", durationText, distanceText)
 	}
-}
-
-func roundNum(num float32) float32 {
-	return float32(math.Round(float64(num)/10) * 10)
 }
 
 func formatDuration(d time.Duration) string {
